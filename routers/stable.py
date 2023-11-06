@@ -59,6 +59,9 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
         # Check if the current time in local batches time is greater than the scheduled time for processing. If so, add one more day
         if batches_local_time > batches_local_scheduled_time:
             utc_scheduled_time += timedelta(days=1)
+            utc_scheduled_time = get_next_working_day(utc_scheduled_time)
+
+            print(f"It's too late today already, scheduling for {utc_scheduled_time}")
 
         # Convert the scheduled time to the UTC timezone
         utc_scheduled_time = batches_local_scheduled_time.astimezone(utc)
@@ -96,7 +99,7 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
             processed_emails_daily += len(batch)
 
             # Create new celery task to process the batch at the scheduled time
-            process_email_batch.apply_async(args=[batch_data], eta=datetime.now() + timedelta(minutes=2 + processing_batches))
+            process_email_batch.apply_async(args=[batch_data], eta=utc_scheduled_time)
 
             processing_batches += 1
 
@@ -109,5 +112,5 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
 
     db.close()
 
-    return {"message": f"CSV file uploaded successfully. {len(batches)} batches scheduled for processing for {days_planned} working days."}
+    return {"message": f"CSV file uploaded successfully. {processing_batches} batches scheduled for processing for {days_planned} working days."}
 
