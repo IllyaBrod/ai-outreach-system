@@ -8,8 +8,6 @@ from database import SessionLocal, EmailTask, TaskStatusEnum, Batch
 from uuid import UUID
 
 app = FastAPI()
-db = SessionLocal()
-
 REDIS_URL = os.getenv("REDIS_URL")
 
 @app.on_event("startup")
@@ -24,17 +22,22 @@ app.include_router(stable.router)
 
 @app.get("/tracking-pixel/{unique_id}")
 def track_email_open(unique_id: str):
+    db = SessionLocal()
+
     try:
         task_id = UUID(unique_id)
     except ValueError:
+        db.close()
         raise HTTPException(status_code=404, detail="Not found id")
 
     email_task = db.query(EmailTask).filter(EmailTask.id == task_id).first()
 
     if email_task == None:
+        db.close()
         raise HTTPException(status_code=404, detail="Not found id")
     
     email_task.status = TaskStatusEnum.OPENED
     db.commit()
+    db.close()
 
     return {"message": f"Open event tracked successfully for {unique_id}"}

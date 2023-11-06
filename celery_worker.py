@@ -85,3 +85,5 @@ def process_email_batch(batch: dict):
             db_task.status = TaskStatusEnum.SENDING_FAILED
 
             db.commit()
+        finally:
+            db.close()
