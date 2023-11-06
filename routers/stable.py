@@ -30,7 +30,7 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
     df = pd.read_csv(outreach_csv.file)
 
     # Group df by the country, to identify the timezone later on
-    df_grouped = df.groupby("Country")
+    df_grouped = df.head(2).groupby("Country")
 
     utc_scheduled_time = get_next_working_day(datetime.now(tz=utc))
 
@@ -94,7 +94,7 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
             processed_emails_daily += len(batch)
 
             # Create new celery task to process the batch at the scheduled time
-            process_email_batch.apply_async(args=[batch_data], eta=utc_scheduled_time)
+            process_email_batch.apply_async(args=[batch_data], eta=datetime.now() + timedelta(minutes=2))
 
             db_batch.scheduled_processing_time = utc_scheduled_time
             db.add(db_batch)
