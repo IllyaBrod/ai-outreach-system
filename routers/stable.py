@@ -34,8 +34,10 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
 
     utc_scheduled_time = get_next_working_day(datetime.now(tz=utc))
 
-    processed_emails_daily = 0
     days_planned = 1
+    processing_batches = 0
+
+    processed_emails_daily = 0
     for country, data in df_grouped:
         # Split all emails into batches of the size around 50
         batches = split_df_into_batches(data)
@@ -94,7 +96,9 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
             processed_emails_daily += len(batch)
 
             # Create new celery task to process the batch at the scheduled time
-            process_email_batch.apply_async(args=[batch_data], eta=datetime.now() + timedelta(minutes=2))
+            process_email_batch.apply_async(args=[batch_data], eta=datetime.now() + timedelta(minutes=2 + processing_batches))
+
+            processing_batches += 1
 
             db_batch.scheduled_processing_time = utc_scheduled_time
             db.add(db_batch)
@@ -102,6 +106,8 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
 
             print(f"{country} batch of size {len(batch)} will be processed at {utc_scheduled_time}")
             print(f"Emails in one batch: {processed_emails_daily}")
+
+    db.close()
 
     return {"message": f"CSV file uploaded successfully. {len(batches)} batches scheduled for processing for {days_planned} working days."}
 
