@@ -35,7 +35,7 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
     utc_scheduled_time = get_next_working_day(datetime.now(tz=utc))
 
     processed_emails_daily = 0
-    days_planned = 0
+    days_planned = 1
     for country, data in df_grouped:
         # Split all emails into batches of the size around 50
         batches = split_df_into_batches(data)
