@@ -58,10 +58,10 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
 
         # Check if the current time in local batches time is greater than the scheduled time for processing. If so, add one more day
         if batches_local_time > batches_local_scheduled_time:
-            utc_scheduled_time += timedelta(days=1)
-            utc_scheduled_time = get_next_working_day(utc_scheduled_time)
+            batches_local_scheduled_time += timedelta(days=1)
+            batches_local_scheduled_time = get_next_working_day(batches_local_scheduled_time)
 
-            print(f"It's too late today already, scheduling for {utc_scheduled_time}")
+            print(f"It's too late today already, scheduling for {batches_local_scheduled_time} in {batches_timezone} timezone")
 
         # Convert the scheduled time to the UTC timezone
         utc_scheduled_time = batches_local_scheduled_time.astimezone(utc)
