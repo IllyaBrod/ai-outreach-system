@@ -45,7 +45,7 @@ def send_outreach_email(company_website: str, company_name: str, prospect_first_
 def process_email_batch(batch: dict):
     db = SessionLocal()
 
-    for row in batch:
+    for i, row in enumerate(batch):
         company_name = row["Company Name for Emails"]
         company_website = row["Website"]
         prospect_first_name = row["First Name"]
@@ -74,8 +74,9 @@ def process_email_batch(batch: dict):
             
             delay_seconds = random.uniform(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
 
-            print(f"Sending next email in {delay_seconds}")
-            time.sleep(delay_seconds)  # Pause the execution for the specified delay
+            if i < len(batch) - 1:
+                print(f"Sending next email in {delay_seconds}")
+                time.sleep(delay_seconds)  # Pause the execution for the specified delay
 
         except Exception as e:
             # Handle errors if the email sending fails
