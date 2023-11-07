@@ -3,6 +3,8 @@ from utils.smtp_email_sender import send_email
 from utils.email_writer import create_personalized_email
 from utils.exceptions import EmailSendingException, PersonalizedEmailCreationException
 from uuid import UUID
+from datetime import datetime
+from pytz import utc
 import logging
 from database import SessionLocal, EmailTask, TaskStatusEnum
 import time
@@ -69,7 +71,7 @@ def process_email_batch(batch: dict):
                 db_task.status = TaskStatusEnum.SENDING_FAILED
 
             db_task.email_content = email_content
-            db.add(db_task)
+            db_task.updated_at = datetime.now(tz=utc)
             db.commit()
             
             delay_seconds = random.uniform(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)

@@ -15,7 +15,6 @@ router = APIRouter(
         Depends(validate_api_key)
     ]
 )
-db = SessionLocal()
 
 @router.post(
     "/start-outreach",
@@ -26,11 +25,13 @@ def start_outreach_concurrent(outreach_csv: UploadFile):
     if outreach_csv.content_type != "text/csv":
         raise HTTPException(status_code=415, detail=f"Unsupported file type. Got {outreach_csv.content_type}; expected: text/csv")
     
+    db = SessionLocal()
+    
     # Read csv file to DataFrame with pandas
     df = pd.read_csv(outreach_csv.file)
 
     # Group df by the country, to identify the timezone later on
-    df_grouped = df.head(2).groupby("Country")
+    df_grouped = df.groupby("Country")
 
     utc_scheduled_time = get_next_working_day(datetime.now(tz=utc))
 

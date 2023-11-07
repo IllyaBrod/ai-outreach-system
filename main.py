@@ -6,6 +6,8 @@ from fastapi_limiter import FastAPILimiter
 from routers import deprecated, stable
 from database import SessionLocal, EmailTask, TaskStatusEnum, Batch
 from uuid import UUID
+from datetime import datetime
+from pytz import utc
 
 app = FastAPI()
 REDIS_URL = os.getenv("REDIS_URL")
@@ -37,6 +39,7 @@ def track_email_open(unique_id: str):
         raise HTTPException(status_code=404, detail="Not found id")
     
     email_task.status = TaskStatusEnum.OPENED
+    email_task.updated_at = datetime.now(tz=utc)
     db.commit()
     db.close()
 
