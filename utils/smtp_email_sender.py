@@ -76,7 +76,7 @@ def send_email(to_email, content, company_name, first_name, sender_full_name, un
         server.login(ionos_username, ionos_password)
 
         # TODO remove later
-        to_email = "illya20052003@gmail.com"
+        # to_email = "illya20052003@gmail.com"
 
         # Create the email message
         msg = MIMEMultipart()

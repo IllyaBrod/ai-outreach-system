@@ -61,7 +61,7 @@ def process_email_batch(batch: dict):
         
         # Logic for sending emails
         try:
-            email_content, email_sent = send_outreach_email(company_website, company_name, prospect_first_name, prospect_email="illya20052003@gmail.com", task_id=db_task.id)
+            email_content, email_sent = send_outreach_email(company_website, company_name, prospect_first_name, prospect_email=prospect_email, task_id=db_task.id)
             
             # Update the status to "sent" in the database
 
