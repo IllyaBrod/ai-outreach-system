@@ -57,18 +57,3 @@ def get_next_working_day(date: datetime):
         if date.weekday() < 5:  # Check if it's a working day (Monday to Friday)
             return date
         date += timedelta(days=1)
-
-tz = get_recipient_timezone("Vietnam")
-offset = tz.utcoffset(datetime.now()).total_seconds() / 3600
-
-print("Offset", offset)
-
-offset_timedelta = timedelta(minutes=int(offset * 60))
-
-adjusted_time = datetime.utcnow() + offset_timedelta
-
-print(adjusted_time)
-
-current_local_time = datetime.utcnow() - offset_timedelta
-
-print(datetime.utcnow())
