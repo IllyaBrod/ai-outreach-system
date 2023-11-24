@@ -31,7 +31,7 @@ def start_outreach(outreach_csv: UploadFile):
     # Read csv file to DataFrame with pandas
     df = pd.read_csv(outreach_csv.file)
     
-    df = df.head(100).to_dict(orient="records")
+    df = df.to_dict(orient="records")
 
     res = split_into_batches.delay(df)
 
