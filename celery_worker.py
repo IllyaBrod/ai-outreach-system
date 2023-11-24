@@ -1,19 +1,25 @@
 from celery import Celery
+from database import SessionLocal, EmailTask, Batch
+from sqlalchemy import select
 from utils.smtp_email_sender import send_email
 from utils.email_writer import create_personalized_email
+from utils.scheduling_helper import get_next_working_day, split_df_into_batches, get_utc_offset
 from utils.exceptions import EmailSendingException, PersonalizedEmailCreationException
 from uuid import UUID
 from datetime import datetime
+from datetime import timedelta, datetime
 from pytz import utc
 import logging
 from database import SessionLocal, EmailTask, TaskStatusEnum
 import time
 import random
 import os
+import pandas as pd
 
-REDIS_URL = os.getenv("REDIS_URL")
+BROKER_REDIS_URL = os.getenv("REDIS_URL")
+RESULT_REDIS_URL = os.getenv("RESULT_REDIS_URL")
 
-celery = Celery("tasks", broker=REDIS_URL, backend=REDIS_URL)
+celery = Celery("tasks", broker=BROKER_REDIS_URL, backend=RESULT_REDIS_URL)
 
 sender_name = "Illya Brodovskyy"
 MIN_DELAY_SECONDS = 40  # Minimum delay in seconds (adjust as needed)
@@ -61,7 +67,7 @@ def process_email_batch(batch: dict):
         
         # Logic for sending emails
         try:
-            email_content, email_sent = send_outreach_email(company_website, company_name, prospect_first_name, prospect_email="illya20052003@gmail.com", task_id=db_task.id)
+            email_content, email_sent = send_outreach_email(company_website, company_name, prospect_first_name, prospect_email=prospect_email, task_id=db_task.id)
             
             # Update the status to "sent" in the database
 
@@ -88,5 +94,101 @@ def process_email_batch(batch: dict):
             db_task.status = TaskStatusEnum.SENDING_FAILED
 
             db.commit()
-        finally:
-            db.close()
+
+    db.close()
+
+@celery.task(track_started=True)
+def split_into_batches(df_dict: dict):
+    db = SessionLocal()
+    print("STARTED")
+
+    df = pd.DataFrame(df_dict)
+    
+    start = time.time()
+    df["utc_offset"] = df.apply(get_utc_offset, axis=1)
+    end = time.time()
+
+    print(end - start)
+    # Group df by the country, to identify the timezone later on
+    df_grouped = df.groupby("utc_offset")
+
+    print(df_grouped.groups)
+
+    utc_time = get_next_working_day(datetime.utcnow())
+
+    days_planned = 1
+    processing_batches = 0
+
+    processed_emails_daily = 0
+    for offset, data in df_grouped:
+        # Split all emails into batches of the size around 50
+        batches = split_df_into_batches(data)
+
+        offset_timedelta = timedelta(minutes=int(offset * 60))
+        
+        # Add the utc offset to utc time to get the local time of the batch
+        batches_current_local_time = datetime.utcnow() + offset_timedelta
+
+        # Create a scheduled time for processing and set it to around 10 am in local batches time 
+        batches_local_scheduled_time = utc_time.replace(hour=9, minute=59, second=21, microsecond=0)
+
+        # Check if the current time in local batches time is greater than the scheduled time for processing. If so, add one more day
+        if batches_current_local_time > batches_local_scheduled_time:
+            batches_local_scheduled_time += timedelta(days=1)
+            batches_local_scheduled_time = get_next_working_day(batches_local_scheduled_time)
+
+            print(f"It's too late today already, scheduling for {batches_local_scheduled_time} in UTC{'+' if offset > 0 else ''}{offset} timezone")
+
+        # Convert the scheduled time to the UTC timezone
+        utc_time = batches_local_scheduled_time - offset_timedelta
+
+        for i, batch in enumerate(batches):
+            db_batch = Batch(timezone=offset)
+            for _, row in batch.iterrows():
+                recipient_email = row["Email"]
+
+                # TODO GET 
+                # Check if email exists in table
+                db_task = db.execute(
+                    select(EmailTask).where(EmailTask.recipient_email == recipient_email)
+                ).first()
+                if db_task:
+                    print(f"Skipping {recipient_email}, because it is already processing.")
+                    continue
+
+                email_task = EmailTask(recipient_email=recipient_email)
+                db.add(email_task)
+                db.commit()
+
+                db_batch.email_tasks.append(email_task)
+
+            if len(db_batch.email_tasks) == 0:
+                continue
+
+            # Convert DataFrame to a list of dictionaries
+            batch_data = batch.to_dict(orient="records")
+
+            # Check if sending it is going to be more than 50 emails per day with the current batch. 
+            # If so, set the day for the next working day and reset the processed email count
+            if processed_emails_daily + len(batch) > 50:
+                print("Batch limit achieved")
+                utc_time += timedelta(days=1)
+                utc_time = get_next_working_day(utc_time)
+                processed_emails_daily = 0
+                days_planned += 1
+            
+            processed_emails_daily += len(batch)
+
+            # Create new celery task to process the batch at the scheduled time
+            process_email_batch.apply_async(args=[batch_data], eta=utc_time)
+
+            processing_batches += 1
+
+            db_batch.scheduled_processing_time = utc_time
+            db.add(db_batch)
+            db.commit()
+
+            print(f"{offset} batch of size {len(batch)} will be processed at {utc_time}")
+            print(f"Emails in one batch: {processed_emails_daily}")
+
+    db.close()

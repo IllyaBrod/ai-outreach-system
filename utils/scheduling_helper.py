@@ -1,25 +1,41 @@
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
-from pytz import timezone
+from pytz import timezone, UnknownTimeZoneError, utc
 from datetime import datetime, timedelta
-from pandas import DataFrame
+from pandas import DataFrame, Series
+import pandas as pd
 import random
+import time
 
 geolocator = Nominatim(user_agent="geoEmailOutreach")
 
-def get_recipient_timezone(country: str, state: str = None, city: str = None):
-    address_parts = [part for part in [city, state, country] if part]
-    address = ", ".join(address_parts)
+def get_recipient_timezone(address: str):
+    try:
+        location = geolocator.geocode(address)
 
-    location = geolocator.geocode(address)
+        if not location:
+            return None # Handle the case when the address is not found
 
-    if not location:
-        return None # Handle the case when the address is not found
+        finder = TimezoneFinder()
+        found_timezone = finder.timezone_at(lng=location.longitude, lat=location.latitude)
 
-    finder = TimezoneFinder()
-    found_timezone = finder.timezone_at(lng=location.longitude, lat=location.latitude)
+        return timezone(found_timezone)
+    except Exception:
+        return None
 
-    return timezone(found_timezone)
+# Function to get UTC offset from a location column
+def get_utc_offset(row: Series) -> float:
+    location_columns = ["Location", "Country", "Company's country"]
+    
+    for column in location_columns:
+        prospect_location = row[column]
+        if not pd.isnull(prospect_location) and len(str(prospect_location).strip()) > 1:
+            tz = get_recipient_timezone(address=prospect_location)
+            if tz:
+                return tz.utcoffset(datetime.now()).total_seconds() / 3600
+    
+    # In case all location details of a prospect were null or could not be found
+    return 0.0
 
 def split_df_into_batches(df: DataFrame):
     batches = []

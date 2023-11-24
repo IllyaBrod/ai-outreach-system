@@ -121,7 +121,7 @@ Illya Brodovskyy
 CEO and Founder, Eryndor
 https://www.eryndortech.com
 
-PS. As a special offer only for November, we offer to build an MVP tailored to {company_name}'s requirements completely for FREE. This way you can experience the benefits firsthand before making any commitment.
+PS. As a special offer until the end of the year, we are offering to build an MVP tailored to {company_name}'s requirements completely for FREE. This way you can experience the benefits firsthand before making any commitment.
 '''
 
     prompt = PromptTemplate(template=template, input_variables=["company_information", "email"])

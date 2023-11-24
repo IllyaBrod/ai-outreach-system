@@ -37,7 +37,7 @@ class Batch(Base):
     __tablename__ = "batches"
 
     id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, index=True)
-    country = Column(String, index=True)
+    timezone = Column(String)
     scheduled_processing_time = Column(DateTime)
     email_tasks: Mapped[List["EmailTask"]] = relationship(back_populates="batch")
     created_at = Column(DateTime, default=datetime.utcnow())
