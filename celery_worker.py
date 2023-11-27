@@ -16,10 +16,9 @@ import random
 import os
 import pandas as pd
 
-BROKER_REDIS_URL = os.getenv("REDIS_URL")
-RESULT_REDIS_URL = os.getenv("RESULT_REDIS_URL")
+REDIS_URL = os.getenv("REDIS_URL")
 
-celery = Celery("tasks", broker=BROKER_REDIS_URL, backend=RESULT_REDIS_URL)
+celery = Celery("tasks", broker=REDIS_URL, backend=REDIS_URL)
 
 sender_name = "Illya Brodovskyy"
 MIN_DELAY_SECONDS = 40  # Minimum delay in seconds (adjust as needed)
@@ -54,9 +53,9 @@ def process_email_batch(batch: dict):
     db = SessionLocal()
 
     for i, row in enumerate(batch):
-        company_name = row["Company Name for Emails"]
-        company_website = row["Website"]
-        prospect_first_name = row["First Name"]
+        company_name = row["Company name"]
+        company_website = row["Company URL"]
+        prospect_first_name = row["First name"]
         prospect_email = row["Email"]
 
         db_task = db.query(EmailTask).filter(EmailTask.recipient_email == prospect_email).first()
@@ -103,7 +102,7 @@ def split_into_batches(df_dict: dict):
     print("STARTED")
 
     df = pd.DataFrame(df_dict)
-    
+    df = df.iloc[120:126]
     start = time.time()
     df["utc_offset"] = df.apply(get_utc_offset, axis=1)
     end = time.time()
@@ -180,7 +179,9 @@ def split_into_batches(df_dict: dict):
             processed_emails_daily += len(batch)
 
             # Create new celery task to process the batch at the scheduled time
-            process_email_batch.apply_async(args=[batch_data], eta=utc_time)
+            # process_email_batch.apply_async(args=[batch_data], eta=utc_time)
+            process_email_batch.apply_async(args=[batch_data], eta=datetime.utcnow() + timedelta(minutes=2))
+
 
             processing_batches += 1
 

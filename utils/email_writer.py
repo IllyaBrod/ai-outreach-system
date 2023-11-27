@@ -96,7 +96,7 @@ def get_tokens_number(text: str):
 # A tool to get info from scraped info and turn it in the personalized email
 def write_email_text_openai(company_information, first_name, company_name):
     template = '''You are the best salesman in the world and you know how to grab people's attention. You are also a professional copy writer. And I need your help. I have an AI software development company and I am doing the cold outreach to my leads via email. I already have a cold email content written, but I want to make the email personalized, so that it feels for the prospect like I wrote it personally for them. Therefore, I need you to only create a personalized compliment/first liner about the company of my prospect. Say that I was looking for potential partners to reach out to, and then I found them, and so on. Make it REALLY personalized.
-    I am providing you with the company information, as well as with the email that I need to personalize. Return the full email with the personalization added. Do not change anything else.
+    I am providing you with the company information, as well as with the email that I need to personalize. Return the full email with the personalization added. You strictly must not change anything else in the email.
 
     Company information: {company_information}
     Email: {email}
