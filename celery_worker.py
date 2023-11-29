@@ -105,12 +105,8 @@ def split_into_batches(df_dict: dict):
     print("STARTED")
 
     df = pd.DataFrame(df_dict)
-    df = df.head(5)
-    start = time.time()
     df["utc_offset"] = df.apply(get_utc_offset, axis=1)
-    end = time.time()
 
-    print(end - start)
     # Group df by the country, to identify the timezone later on
     df_grouped = df.groupby("utc_offset")
 
@@ -181,7 +177,7 @@ def split_into_batches(df_dict: dict):
             processed_emails_daily += len(batch)
 
             # Create new celery task to process the batch at the scheduled time
-            process_email_batch.apply_async(args=[batch_data], eta=datetime.utcnow() + timedelta(minutes=1 + processing_batches))
+            process_email_batch.apply_async(args=[batch_data], eta=utc_time)
 
             processing_batches += 1
 
