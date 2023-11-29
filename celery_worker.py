@@ -58,9 +58,10 @@ def process_email_batch(batch: dict):
         prospect_first_name = row["First name"]
         prospect_email = row["Email"]
 
-        db_task = db.execute(
+        db_task: EmailTask = db.scalar(
                     select(EmailTask).where(EmailTask.recipient_email == prospect_email)
-                ).first()
+                )
+        
         if db_task and db_task.status != TaskStatusEnum.SCHEDULED:
             continue
         elif db_task == None:
@@ -104,6 +105,7 @@ def split_into_batches(df_dict: dict):
     print("STARTED")
 
     df = pd.DataFrame(df_dict)
+    df = df.head(5)
     start = time.time()
     df["utc_offset"] = df.apply(get_utc_offset, axis=1)
     end = time.time()
@@ -147,7 +149,6 @@ def split_into_batches(df_dict: dict):
             for _, row in batch.iterrows():
                 recipient_email = row["Email"]
 
-                # TODO GET 
                 # Check if email exists in table
                 db_task = db.execute(
                     select(EmailTask).where(EmailTask.recipient_email == recipient_email)
@@ -180,7 +181,7 @@ def split_into_batches(df_dict: dict):
             processed_emails_daily += len(batch)
 
             # Create new celery task to process the batch at the scheduled time
-            process_email_batch.apply_async(args=[batch_data], eta=utc_time)
+            process_email_batch.apply_async(args=[batch_data], eta=datetime.utcnow() + timedelta(minutes=1 + processing_batches))
 
             processing_batches += 1
 
