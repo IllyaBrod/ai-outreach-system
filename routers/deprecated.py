@@ -88,10 +88,10 @@ def start_outreach(outreach_csv: UploadFile):
     df = pd.read_csv(outreach_csv.file)
     outreach_result_list = []
 
-    for index, row in df.head(10).iterrows():
-        company_name = row["Company Name for Emails"]
-        company_website = row["Website"]
-        prospect_first_name = row["First Name"]
+    for index, row in df.iloc[4:7].iterrows():
+        company_name = row["Company name"]
+        company_website = row["Company URL"]
+        prospect_first_name = row["First name"]
         prospect_email = row["Email"]
 
         email_content, email_sent = send_outreach_email(company_website, company_name, prospect_first_name, prospect_email)

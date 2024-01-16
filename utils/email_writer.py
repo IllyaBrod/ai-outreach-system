@@ -23,9 +23,11 @@ load_dotenv(find_dotenv())
 5. Repeat
 """
 
+MODEL_NAME = "gpt-4-1106-preview"
+
 embeddings = OpenAIEmbeddings()
-llm = OpenAI(temperature=0.4, model="gpt-3.5-turbo-instruct", max_tokens=512)
-llm2 = ChatOpenAI(temperature=0.0, model_name="gpt-3.5-turbo")
+# llm = OpenAI(temperature=0.4, model="gpt-4-1106-preview", max_tokens=512)
+llm2 = ChatOpenAI(temperature=0.6, model_name=MODEL_NAME)
 created = False
 
 # Function to split text in chunks
@@ -89,50 +91,57 @@ def scrape_website(url: str, company_name: str) -> str:
         raise PersonalizedEmailCreationException(f"HTTP request to browserless failed with the status code {response.status_code}.\nResponse object: {response}")
     
 def get_tokens_number(text: str):
-    encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+    encoding = tiktoken.encoding_for_model(MODEL_NAME)
     num_tokens = len(encoding.encode(text))
     return num_tokens
     
 # A tool to get info from scraped info and turn it in the personalized email
 def write_email_text_openai(company_information, first_name, company_name):
-    template = '''You are the best salesman in the world and you know how to grab people's attention. You are also a professional copy writer. And I need your help. I have an AI software development company and I am doing the cold outreach to my leads via email. I already have a cold email content written, but I want to make the email personalized, so that it feels for the prospect like I wrote it personally for them. Therefore, I need you to only create a personalized compliment/first liner about the company of my prospect. Say that I was looking for potential partners to reach out to, and then I found them, and so on. Make it REALLY personalized.
-    I am providing you with the company information, as well as with the email that I need to personalize. Return the full email with the personalization added. You strictly must not change anything else in the email.
+    template = """You are a professional salesman and specialize in cold email outreach. Your task is to write one or two personalization sentences based on the information from a prospect's company website for the email template provided. What you need to do:
+    - Analyze provided email template and understand where personalization needs to go
+    - Read the scraped information from a prospect's company website
+    - Write short personalization that contextually suits the email
+    - Paste personalization where it needs to go in the email
+    - Return the customized email
 
-    Company information: {company_information}
-    Email: {email}
-    '''
+    IMPORTANT TO KNOW:
+    ** NEVER CHANGE ANYTHING IN THE EMAIL EXCEPT PASTING PERSONALIZATION **
+    ** DO NOT ADD SUBJECT OR OTHER PARTS TO THE EMAIL **
+    ** DO NOT RETURN PERSONALIZATION SEPARATELY FROM THE EMAIL. YOUR RESPONSE MUST ONLY BE THE PERSONALIZED EMAIL **
+    
+    EMAIL TEMPLATE: `{email}`
+    
+    SCRAPED COMPANY INFORMATION:
+    `{company_information}
+    `"""
+    
+    email = f"""Dear {first_name},
 
-    calendly_link = "https://calendly.com/illya-brodovskyy/introduction-meeting-with-eryndor"
-    email = f'''
-Dear {first_name},
+    I hope this email finds you well. I'm Illya Brodovskyy, CEO of Eryndor. [PERSONALIZATION GOES HERE]
 
-I hope this email finds you well! I'm Illya Brodovskyy, Founder & CEO of Eryndor. "PERSONALIZATION GOES HERE"
+    In the financial sector, managing vast amounts of data manually can be an extremely time-consuming task. However, with recent advancements in Large Language Models (LLMs) and AI, automating your data workflows is now more accessible than ever.
 
-At Eryndor, we specialize in boosting efficiency and significantly reducing operational costs for companies like yours. We do this by building unique AI systems that are specifically tailored to our clients' needs. This way we can completely automate the processes of our customers and seamlessly integrate our solutions in their workflows. The time is the biggest asset that anyone can possess. Therefore, we want to free up your company's time and resources, so that you can allocate them to growth and innovations.
+    I'm reaching out to extend an exclusive offer to {company_name}: a complimentary consultation on how AI can revolutionize your data entry and processing. This includes a detailed automation proposal and, best of all, it won't cost you a thing. If you find the solution beneficial, Eryndor can then develop the proposed AI system and seamlessly integrate it into your workflow.
 
-One notable example of our work involved automating Dutch FinTech startup's client onboarding. Using advanced technologies like LLM and object detection, we built a system that automatically processed, analyzed, and verified legal corporate documentation uploaded during onboarding. This system not only saves time and costs but also enhances customer satisfaction.
+    Could we schedule a quick, 20-minute introductory call next week to discuss this further? You can also use my calendly link to schedule a meeting at your conviniece: https://calendly.com/illya-brodovskyy/introduction-meeting-with-eryndor. I'm eager to explore how Eryndor can contribute to the success of Heartland Finance.
 
-I'd love to have an opportunity to discuss with you how Eryndor can elevate {company_name}'s operations. Could we schedule a 30-minute call next week? Alternatively, feel free to schedule a meeting at your convenience using my Calendly link: {calendly_link}.
+    Best Regards,
 
-Looking forward to working together and contributing to {company_name}'s success.
+    Illya Brodovskyy
+    CEO & Founder
+    Eryndor
+    www.eryndortech.com
 
-Warm regards,
-Illya Brodovskyy
-CEO and Founder, Eryndor
-https://www.eryndortech.com
-
-PS. As a special offer until the end of the year, we are offering to build an MVP tailored to {company_name}'s requirements completely for FREE. This way you can experience the benefits firsthand before making any commitment.
-'''
+    P.S. To make this offer even more compelling, upon agreement, we'll even build a free MVP for a hands-on demonstration, showcasing our commitment to reduce operational costs and enhancing your efficiency. I'm looking forward to the opportunity.
+    """
 
     prompt = PromptTemplate(template=template, input_variables=["company_information", "email"])
 
     # Calculate the tokens number of prompt
-    """
-    p = prompt.format_prompt(company_information=company_information, meeting_link="https://calendar.illya.eryndor.com", first_name=first_name, company_name=company_name)
-
-    print(get_tokens_number(p.to_string()))
-    """
-    llm_chain = LLMChain(prompt=prompt, llm=llm)
+    # p = prompt.format_prompt(company_information=company_information, meeting_link="https://calendar.illya.eryndor.com", first_name=first_name, company_name=company_name)
+    # print(get_tokens_number(p.to_string()))
+    
+    llm_chain = LLMChain(prompt=prompt, llm=llm2)
 
     try:
         answer = llm_chain.run(company_information=company_information, email=email)
@@ -147,8 +156,6 @@ def create_personalized_email(url: str, company_name: str, first_name: str) -> s
     print(email)
 
     return email
-
-
 
 # Legacy templates
     template = """I am doing a customer outreach on behalf of my software development company called Eryndor that builds custom AI automation systems for businesses. And I want you to write a simple personalized email that would encourage recipients to read the email fully and schedule a meeting with me, Founder & CEO, Illya Brodovskyy, to discuss potential collaboration. The email should be engaging, complimentary, and avoid sounding generic or overly sales-oriented.
