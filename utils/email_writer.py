@@ -123,7 +123,7 @@ def write_email_text_openai(company_information, first_name, company_name):
 
     I'm reaching out to extend an exclusive offer to {company_name}: a complimentary consultation on how AI can revolutionize your data entry and processing. This includes a detailed automation proposal and, best of all, it won't cost you a thing. If you find the solution beneficial, Eryndor can then develop the proposed AI system and seamlessly integrate it into your workflow.
 
-    Could we schedule a quick, 20-minute introductory call next week to discuss this further? You can also use my calendly link to schedule a meeting at your conviniece: https://calendly.com/illya-brodovskyy/introduction-meeting-with-eryndor. I'm eager to explore how Eryndor can contribute to the success of Heartland Finance.
+    Could we schedule a quick, 20-minute introductory call next week to discuss this further? You can also use my calendly link to schedule a meeting at your conviniece: https://calendly.com/illya-brodovskyy/introduction-meeting-with-eryndor. I'm eager to explore how Eryndor can contribute to the success of {company_name}.
 
     Best Regards,
 
